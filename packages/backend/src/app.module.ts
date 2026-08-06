@@ -14,6 +14,8 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MediaModule } from './modules/media/media.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -39,6 +41,8 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     ChatModule,
     MediaModule,
     ContactsModule,
+    SubscriptionsModule,
+    AdminModule,
   ],
   controllers: [],
   providers: [

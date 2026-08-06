@@ -59,6 +59,8 @@ async function bootstrap() {
     .addTag('Chat')
     .addTag('Emergency')
     .addTag('Contacts')
+    .addTag('Subscriptions')
+    .addTag('Admin')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
