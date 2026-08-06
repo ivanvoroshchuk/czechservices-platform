@@ -17,7 +17,7 @@ import { PrismaModule } from '@database/prisma.module';
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('jwt.secret'),
         signOptions: {
-          expiresIn: configService.get<string>('jwt.expiresIn'),
+          expiresIn: parseInt(configService.get<string>('jwt.expiresIn') || '900'),
         },
       }),
     }),

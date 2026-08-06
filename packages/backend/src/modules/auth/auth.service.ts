@@ -174,7 +174,7 @@ export class AuthService {
       },
       {
         secret: this.configService.get<string>('jwt.refreshSecret'),
-        expiresIn: this.configService.get<string>('jwt.refreshExpiresIn'),
+        expiresIn: parseInt(this.configService.get<string>('jwt.refreshExpiresIn') || '604800'),
       },
     );
 
