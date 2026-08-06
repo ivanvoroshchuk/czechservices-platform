@@ -8,6 +8,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { LocationsModule } from './modules/locations/locations.module';
 import { ServicesModule } from './modules/services/services.module';
+import { ProfilesModule } from './modules/profiles/profiles.module';
+import { VerificationModule } from './modules/verification/verification.module';
+import { BookingsModule } from './modules/bookings/bookings.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -27,6 +31,10 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     UsersModule,
     LocationsModule,
     ServicesModule,
+    ProfilesModule,
+    VerificationModule,
+    BookingsModule,
+    ChatModule,
   ],
   controllers: [],
   providers: [
