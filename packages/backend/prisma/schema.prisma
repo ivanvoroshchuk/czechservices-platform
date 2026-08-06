@@ -1,0 +1,628 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH & USERS
+// ============================================================
+
+model User {
+  id                    String @id @default(cuid())
+  
+  // Authentication
+  email                 String @unique
+  phone                 String @unique
+  passwordHash          String
+  
+  // Personal Info
+  firstName             String
+  lastName              String
+  dateOfBirth           DateTime
+  profilePicture        String?
+  
+  // 18+ Verification
+  isAgeVerified         Boolean @default(false)
+  ageVerificationStatus String @default("PENDING") // PENDING, VERIFIED, REJECTED
+  verificationId        String? @unique
+  verificationDocument  VerificationDocument?
+  
+  // Role
+  role                  String @default("USER") // USER, ADMIN, MODERATOR
+  
+  // Status
+  isActive              Boolean @default(true)
+  isSuspended           Boolean @default(false)
+  suspendedReason       String?
+  suspendedUntil        DateTime?
+  
+  // Relations
+  profile               Profile?
+  contacts              Contact[]
+  subscription          Subscription?
+  subscriptionHistory   SubscriptionHistory[]
+  sentMessages          ChatMessage[] @relation("sender")
+  receivedMessages      ChatMessage[] @relation("receiver")
+  emergencyChats        EmergencyChat[]
+  emergencyMessages     EmergencyMessage[] @relation("sender")
+  bookingsAsProvider    Booking[] @relation("provider")
+  bookingsAsClient      Booking[] @relation("client")
+  reviews               Review[] @relation("reviewer")
+  reviewsReceived       Review[] @relation("reviewee")
+  adminActions          AdminAction[]
+  flaggedContentBy      FlaggedContent[] @relation("flagger")
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  @@index([email])
+  @@index([phone])
+  @@index([isAgeVerified])
+  @@index([isActive])
+  @@index([isSuspended])
+}
+
+// ============================================================
+// 18+ VERIFICATION (Veriff Integration)
+// ============================================================
+
+model VerificationDocument {
+  id                    String @id @default(cuid())
+  userId                String @unique
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Document Details
+  documentType          String // "PASSPORT", "ID_CARD", "DRIVERS_LICENSE"
+  documentNumber        String
+  country               String @default("CZ")
+  expiryDate            DateTime?
+  
+  // Veriff Integration
+  veriffSessionId       String @unique
+  veriffStatus          String @default("PENDING") // PENDING, APPROVED, REJECTED
+  veriffNotes           String?
+  
+  // Secure Storage (S3 URLs)
+  documentImageUrl      String
+  selfieImageUrl        String
+  
+  // Timestamps
+  submittedAt           DateTime @default(now())
+  verifiedAt            DateTime?
+  expiresAt             DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([veriffStatus])
+  @@index([userId])
+}
+
+// ============================================================
+// GEOLOCATION (Czech Regions & Cities)
+// ============================================================
+
+model Region {
+  id                    String @id @default(cuid())
+  name                  String @unique // "Praha", "Středočeský", etc.
+  code                  String @unique // "CZ010", etc.
+  displayOrder          Int @default(0)
+  
+  cities                City[]
+  profiles              Profile[]
+  
+  createdAt             DateTime @default(now())
+
+  @@index([name])
+}
+
+model City {
+  id                    String @id @default(cuid())
+  name                  String
+  regionId              String
+  region                Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  zipCode               String?
+  latitude              Float?
+  longitude             Float?
+  
+  profiles              Profile[]
+  
+  createdAt             DateTime @default(now())
+
+  @@unique([regionId, name])
+  @@index([regionId])
+  @@index([name])
+}
+
+// ============================================================
+// SERVICE TYPES
+// ============================================================
+
+model Service {
+  id                    String @id @default(cuid())
+  name                  String @unique // "MASSAGE", "CONSULTATION", "PHOTO_SESSION", "STUDIO_RECORDING"
+  label                 String // "Masáž", "Konzultace", etc.
+  description           String?
+  icon                  String?
+  displayOrder          Int @default(0)
+  
+  profileServices       ProfileService[]
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([name])
+}
+
+// ============================================================
+// PROFILES (USER SERVICE PROFILES / ANKETS)
+// ============================================================
+
+model Profile {
+  id                    String @id @default(cuid())
+  userId                String @unique
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Profile Info
+  bio                   String? @db.Text
+  title                 String?
+  yearsExperience       Int @default(0)
+  
+  // Rating & Reviews
+  rating                Float @default(5.0)
+  reviewCount           Int @default(0)
+  
+  // Location
+  regionId              String
+  region                Region @relation(fields: [regionId], references: [id])
+  cityId                String
+  city                  City @relation(fields: [cityId], references: [id])
+  address               String
+  latitude              Float?
+  longitude             Float?
+  
+  // Media
+  photos                Media[] @relation("profilePhotos")
+  videos                Media[] @relation("profileVideos")
+  
+  // Services
+  services              ProfileService[]
+  
+  // Subscription Info
+  subscriptionTier      String @default("FREE")
+  isFeatured            Boolean @default(false)
+  featuredUntil         DateTime?
+  
+  // Status
+  isPublished           Boolean @default(false)
+  publicationDate       DateTime?
+  moderation            ModerationQueue?
+  
+  // Emergency Access
+  isEmergencyEnabled    Boolean @default(false)
+  emergencyFee          Int?
+  emergencyResponseTime Int?
+  
+  // Stats
+  totalBookings         Int @default(0)
+  totalReviews          Int @default(0)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+
+  @@index([regionId])
+  @@index([cityId])
+  @@index([isPublished])
+  @@index([isFeatured])
+  @@index([rating])
+  @@index([subscriptionTier])
+}
+
+// ============================================================
+// PROFILE SERVICES (Service Offerings)
+// ============================================================
+
+model ProfileService {
+  id                    String @id @default(cuid())
+  profileId             String
+  profile               Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  serviceId             String
+  service               Service @relation(fields: [serviceId], references: [id])
+  
+  // Offering Details
+  title                 String
+  description           String? @db.Text
+  pricePerHour          Int // CZK in cents
+  durationMinutes       Int
+  
+  // Additional Info
+  difficulty            String @default("INTERMEDIATE")
+  languages             String[] @default(["cs"])
+  
+  // Availability & Status
+  isActive              Boolean @default(true)
+  availability          Availability?
+  bookings              Booking[]
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([profileId, serviceId])
+  @@index([profileId])
+  @@index([serviceId])
+}
+
+// ============================================================
+// AVAILABILITY (Working Hours)
+// ============================================================
+
+model Availability {
+  id                    String @id @default(cuid())
+  profileServiceId      String @unique
+  profileService        ProfileService @relation(fields: [profileServiceId], references: [id], onDelete: Cascade)
+  
+  // Weekly Schedule JSON format
+  schedule              Json // { "monday": { "start": "09:00", "end": "17:00" }, ... }
+  
+  // Special dates
+  specialDates          SpecialDate[]
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model SpecialDate {
+  id                    String @id @default(cuid())
+  availabilityId        String
+  availability          Availability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  
+  date                  DateTime
+  isOpen                Boolean @default(false)
+  startTime             String?
+  endTime               String?
+}
+
+// ============================================================
+// MEDIA (Photos & Videos)
+// ============================================================
+
+model Media {
+  id                    String @id @default(cuid())
+  
+  // Ownership
+  profilePhotosId       String?
+  profileVideosId       String?
+  
+  profilePhoto          Profile? @relation("profilePhotos", fields: [profilePhotosId], references: [id], onDelete: Cascade)
+  profileVideo          Profile? @relation("profileVideos", fields: [profileVideosId], references: [id], onDelete: Cascade)
+  
+  // File Details
+  type                  String // "IMAGE", "VIDEO"
+  mimeType              String
+  fileSize              Int
+  url                   String
+  thumbnailUrl          String?
+  duration              Int?
+  width                 Int?
+  height                Int?
+  
+  // Moderation
+  isApproved            Boolean @default(false)
+  moderationStatus      String @default("PENDING")
+  moderationNotes       String?
+  moderatedBy           String?
+  moderatedAt           DateTime?
+  
+  // Metadata
+  displayOrder          Int @default(0)
+  uploadedAt            DateTime @default(now())
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([profilePhotosId])
+  @@index([profileVideosId])
+  @@index([moderationStatus])
+}
+
+// ============================================================
+// CONTACTS
+// ============================================================
+
+model Contact {
+  id                    String @id @default(cuid())
+  userId                String
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type                  String // "PHONE", "TELEGRAM", "WHATSAPP", "VIBER"
+  value                 String
+  isVerified            Boolean @default(false)
+  isPublic              Boolean @default(true)
+  isPrimary             Boolean @default(false)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+}
+
+// ============================================================
+// SUBSCRIPTIONS
+// ============================================================
+
+model Subscription {
+  id                    String @id @default(cuid())
+  userId                String @unique
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  tier                  String // "FREE", "BASIC", "PREMIUM", "PRO"
+  tierName              String?
+  
+  // Stripe Integration
+  stripeCustomerId      String @unique
+  stripeSubscriptionId  String? @unique
+  
+  // Status
+  isActive              Boolean @default(true)
+  startDate             DateTime @default(now())
+  endDate               DateTime?
+  renewalDate           DateTime?
+  
+  // Pricing
+  pricePerMonth         Int // CZK in cents
+  
+  // Features
+  maxPhotos             Int @default(5)
+  maxVideos             Int @default(1)
+  maxServices           Int @default(3)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([tier])
+  @@index([isActive])
+}
+
+model SubscriptionHistory {
+  id                    String @id @default(cuid())
+  userId                String
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  fromTier              String?
+  toTier                String
+  action                String // "CREATE", "UPGRADE", "DOWNGRADE", "CANCEL", "RENEW"
+  reason                String?
+  
+  createdAt             DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// BOOKINGS
+// ============================================================
+
+model Booking {
+  id                    String @id @default(cuid())
+  
+  providerId            String
+  provider              User @relation("provider", fields: [providerId], references: [id], onDelete: Cascade)
+  
+  clientId              String
+  client                User @relation("client", fields: [clientId], references: [id], onDelete: Cascade)
+  
+  profileServiceId      String
+  profileService        ProfileService @relation(fields: [profileServiceId], references: [id])
+  
+  // Booking Details
+  title                 String
+  description           String?
+  scheduledAt           DateTime
+  durationMinutes       Int
+  endAt                 DateTime
+  location              String?
+  
+  // Status
+  status                String @default("PENDING") // PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
+  cancelledBy           String?
+  cancellationReason    String?
+  cancellationTime      DateTime?
+  
+  // Payment
+  amountCZK             Int
+  paymentStatus         String @default("PENDING")
+  stripePaymentId       String?
+  paidAt                DateTime?
+  
+  // Review
+  review                Review?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([providerId])
+  @@index([clientId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([scheduledAt])
+}
+
+model Review {
+  id                    String @id @default(cuid())
+  bookingId             String @unique
+  booking               Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  reviewerId            String
+  reviewer              User @relation("reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  
+  revieweeId            String
+  reviewee              User @relation("reviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+  
+  rating                Int // 1-5
+  title                 String?
+  text                  String? @db.Text
+  isPublic              Boolean @default(true)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([reviewerId])
+  @@index([revieweeId])
+  @@index([rating])
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+
+model ChatMessage {
+  id                    String @id @default(cuid())
+  
+  senderId              String
+  sender                User @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  receiverId            String
+  receiver              User @relation("receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  content               String @db.Text
+  attachment            String?
+  attachmentType        String?
+  
+  isRead                Boolean @default(false)
+  readAt                DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// EMERGENCY CHAT
+// ============================================================
+
+model EmergencyChat {
+  id                    String @id @default(cuid())
+  userId                String
+  user                  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  reason                String
+  description           String? @db.Text
+  priority              String @default("HIGH")
+  
+  status                String @default("OPEN")
+  respondedBy           String?
+  resolvedBy            String?
+  resolution            String? @db.Text
+  
+  messages              EmergencyMessage[]
+  respondedAt           DateTime?
+  resolvedAt            DateTime?
+  
+  isEscalated           Boolean @default(false)
+  escalatedReason       String?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([userId])
+}
+
+model EmergencyMessage {
+  id                    String @id @default(cuid())
+  emergencyChatId       String
+  emergencyChat         EmergencyChat @relation(fields: [emergencyChatId], references: [id], onDelete: Cascade)
+  
+  senderId              String
+  sender                User @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  content               String @db.Text
+  attachment            String?
+  attachmentType        String?
+  
+  createdAt             DateTime @default(now())
+
+  @@index([emergencyChatId])
+  @@index([senderId])
+}
+
+// ============================================================
+// MODERATION
+// ============================================================
+
+model ModerationQueue {
+  id                    String @id @default(cuid())
+  profileId             String @unique
+  profile               Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  status                String @default("PENDING")
+  reason                String?
+  notes                 String? @db.Text
+  
+  moderatedBy           String?
+  moderatedAt           DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([status])
+}
+
+model FlaggedContent {
+  id                    String @id @default(cuid())
+  flaggerId             String
+  flagger               User @relation("flagger", fields: [flaggerId], references: [id], onDelete: Cascade)
+  
+  profileId             String
+  reason                String
+  description           String? @db.Text
+  
+  status                String @default("PENDING")
+  resolution            String?
+  
+  actionTaken           String?
+  actionTakenBy         String?
+  actionTakenAt         DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([status])
+  @@index([profileId])
+}
+
+// ============================================================
+// ADMIN
+// ============================================================
+
+model AdminAction {
+  id                    String @id @default(cuid())
+  adminId               String
+  admin                 User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  
+  action                String
+  actionTarget          String
+  actionTargetId        String
+  reason                String?
+  notes                 String? @db.Text
+  
+  createdAt             DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+}

@@ -1,0 +1,20 @@
+{
+  "name": "czechservices-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Service booking platform for Czech Republic",
+  "author": "Ivan Voroshchuk",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel run dev",
+    "build": "pnpm --parallel run build",
+    "test": "pnpm --parallel run test",
+    "lint": "pnpm --parallel run lint",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  }
+}
