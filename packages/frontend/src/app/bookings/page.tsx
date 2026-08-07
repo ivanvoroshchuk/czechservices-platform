@@ -45,7 +45,7 @@ export default function BookingsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['bookings'],
     queryFn: async () => {
-      const { data } = await api.get('/api/bookings?limit=50')
+      const { data } = await api.get('/api/bookings/my/client?take=50')
       return data
     },
     enabled: !!user,

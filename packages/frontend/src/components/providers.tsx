@@ -1,7 +1,21 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuthStore } from '@/store/auth.store'
+
+function AuthHydrator() {
+  const { fetchMe, accessToken } = useAuthStore()
+
+  useEffect(() => {
+    // If we have a token (from localStorage via Zustand persist),
+    // but user object is null — fetch the profile on mount
+    const token = accessToken || localStorage.getItem('accessToken')
+    if (token) fetchMe()
+  }, [])
+
+  return null
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -13,5 +27,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   )
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthHydrator />
+      {children}
+    </QueryClientProvider>
+  )
 }

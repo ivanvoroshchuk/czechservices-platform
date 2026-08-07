@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const { data: bookings, isLoading: bookingsLoading } = useQuery({
     queryKey: ['my-bookings'],
     queryFn: async () => {
-      const { data } = await api.get('/api/bookings?limit=5')
+      const { data } = await api.get('/api/bookings/my/client?take=5')
       return data
     },
     enabled: !!user,

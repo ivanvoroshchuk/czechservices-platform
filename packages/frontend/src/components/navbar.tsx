@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { cn, getInitials } from '@/lib/utils'
-import { Menu, X, User, LogOut, Calendar, MessageSquare, ChevronDown, Shield, BadgeCheck, Settings, Image, Phone } from 'lucide-react'
-import { useState } from 'react'
+import { Menu, X, User, LogOut, Calendar, MessageSquare, ChevronDown, Shield, BadgeCheck, Settings, Image, Phone, Search, Users } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
 
 export function Navbar() {
   const pathname = usePathname()
@@ -13,6 +13,22 @@ export function Navbar() {
   const { user, logout } = useAuthStore()
   const [menuOpen, setMenuOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQ, setSearchQ] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus()
+  }, [searchOpen])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQ.trim()) {
+      router.push(`/profiles?q=${encodeURIComponent(searchQ.trim())}`)
+      setSearchOpen(false)
+      setSearchQ('')
+    }
+  }
 
   const handleLogout = () => {
     logout()
@@ -53,8 +69,33 @@ export function Navbar() {
             ))}
           </div>
 
+          {/* Search bar (desktop) */}
+          {searchOpen && (
+            <form onSubmit={handleSearch} className="hidden md:flex items-center absolute left-1/2 -translate-x-1/2 w-80">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  ref={searchRef}
+                  value={searchQ}
+                  onChange={e => setSearchQ(e.target.value)}
+                  placeholder="Hledat poskytovatele…"
+                  onBlur={() => { if (!searchQ) setSearchOpen(false) }}
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </form>
+          )}
+
           {/* Right side */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Search button */}
+            <button
+              onClick={() => setSearchOpen(s => !s)}
+              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Hledat"
+            >
+              <Search className="w-4 h-4" />
+            </button>
             {user ? (
               <div className="relative">
                 <button
@@ -90,6 +131,13 @@ export function Navbar() {
                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       <MessageSquare className="w-4 h-4" /> Zprávy
+                    </Link>
+                    <Link
+                      href="/dashboard/provider-bookings"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Users className="w-4 h-4" /> Příchozí rezervace
                     </Link>
                     <Link
                       href="/dashboard/gallery"
@@ -182,8 +230,9 @@ export function Navbar() {
               <>
                 <hr className="border-gray-100 my-1" />
                 <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">{user.firstName} {user.lastName}</p>
-                <Link href="/dashboard"          onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"><User className="w-4 h-4 text-gray-400" />Můj profil</Link>
-                <Link href="/bookings"           onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"><Calendar className="w-4 h-4 text-gray-400" />Rezervace</Link>
+                <Link href="/dashboard"                   onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"><User className="w-4 h-4 text-gray-400" />Můj profil</Link>
+                <Link href="/bookings"                    onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"><Calendar className="w-4 h-4 text-gray-400" />Moje rezervace</Link>
+                <Link href="/dashboard/provider-bookings" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"><Users className="w-4 h-4 text-gray-400" />Příchozí rezervace</Link>
                 <Link href="/chat"               onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"><MessageSquare className="w-4 h-4 text-gray-400" />Zprávy</Link>
                 <Link href="/dashboard/gallery"  onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"><Image className="w-4 h-4 text-gray-400" />Galerie</Link>
                 <Link href="/dashboard/verify"   onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg"><BadgeCheck className="w-4 h-4 text-gray-400" />Ověření</Link>
