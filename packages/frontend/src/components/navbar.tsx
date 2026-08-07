@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { cn, getInitials } from '@/lib/utils'
-import { Menu, X, User, LogOut, Calendar, MessageSquare, ChevronDown, Shield, BadgeCheck } from 'lucide-react'
+import { Menu, X, User, LogOut, Calendar, MessageSquare, ChevronDown, Shield, BadgeCheck, Settings, Image } from 'lucide-react'
 import { useState } from 'react'
 
 export function Navbar() {
@@ -92,11 +92,25 @@ export function Navbar() {
                       <MessageSquare className="w-4 h-4" /> Zprávy
                     </Link>
                     <Link
+                      href="/dashboard/gallery"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Image className="w-4 h-4" /> Galerie médií
+                    </Link>
+                    <Link
                       href="/dashboard/verify"
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       <BadgeCheck className="w-4 h-4" /> Ověření totožnosti
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Settings className="w-4 h-4" /> Nastavení
                     </Link>
                     {user.role === 'ADMIN' && (
                       <Link

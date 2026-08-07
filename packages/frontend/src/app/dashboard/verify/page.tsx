@@ -36,10 +36,10 @@ export default function VerifyPage() {
     setLoading(true)
     setError('')
     try {
-      // Upload front document
+      // Upload front document via photo endpoint
       const frontForm = new FormData()
       frontForm.append('file', frontFile)
-      const { data: frontData } = await api.post('/api/media/document', frontForm, {
+      const { data: frontData } = await api.post('/api/media/upload/photo', frontForm, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
@@ -47,7 +47,7 @@ export default function VerifyPage() {
       if (backFile) {
         const backForm = new FormData()
         backForm.append('file', backFile)
-        const { data: backData } = await api.post('/api/media/document', backForm, {
+        const { data: backData } = await api.post('/api/media/upload/photo', backForm, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         backUrl = backData.url
