@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 import { getAvatarUrl, formatCZK, formatDate } from '@/lib/utils'
-import { MapPin, Star, Phone, Mail, Clock, Calendar, CheckCircle, MessageSquare } from 'lucide-react'
+import { useToastStore } from '@/store/toast.store'
+import { MapPin, Star, Phone, Mail, Clock, Calendar, CheckCircle, MessageSquare, Images } from 'lucide-react'
 import { useState } from 'react'
 
 const DAY_NAMES: Record<string, string> = {
@@ -37,12 +38,13 @@ export default function ProfileDetailPage() {
   const slug = params?.slug as string
   const router = useRouter()
   const { user } = useAuthStore()
+  const toast = useToastStore()
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [bookingDate, setBookingDate] = useState('')
   const [bookingNote, setBookingNote] = useState('')
   const [bookingSuccess, setBookingSuccess] = useState(false)
-  const [bookingError, setBookingError] = useState('')
   const [bookingLoading, setBookingLoading] = useState(false)
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null)
 
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ['profile', slug],
@@ -62,11 +64,19 @@ export default function ProfileDetailPage() {
     enabled: !!slug,
   })
 
+  const { data: media } = useQuery({
+    queryKey: ['profile-media', profile?.id],
+    queryFn: async () => {
+      const { data } = await api.get(`/api/media/profile/${profile.id}`)
+      return data as { id: string; url: string; mediaType: string }[]
+    },
+    enabled: !!profile?.id,
+  })
+
   const handleBook = async () => {
     if (!user) { router.push('/login'); return }
     if (!selectedService || !bookingDate) return
     setBookingLoading(true)
-    setBookingError('')
     try {
       await api.post('/api/bookings', {
         profileId: profile.id,
@@ -78,8 +88,9 @@ export default function ProfileDetailPage() {
       setSelectedService(null)
       setBookingDate('')
       setBookingNote('')
+      toast.success('Rezervace odeslána!')
     } catch (err: any) {
-      setBookingError(err.response?.data?.message || 'Chyba při rezervaci')
+      toast.error(err.response?.data?.message || 'Chyba při rezervaci')
     } finally {
       setBookingLoading(false)
     }
@@ -225,6 +236,34 @@ export default function ProfileDetailPage() {
             </div>
           )}
 
+          {/* Gallery */}
+          {media && media.filter(m => m.mediaType === 'photo').length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Images className="w-5 h-5 text-blue-600" /> Fotogalerie
+              </h2>
+              <div className="grid grid-cols-3 gap-2">
+                {media.filter(m => m.mediaType === 'photo').map(img => {
+                  const src = img.url.startsWith('http') ? img.url : `${process.env.NEXT_PUBLIC_API_URL}${img.url}`
+                  return (
+                    <button key={img.id} onClick={() => setLightboxImg(src)}
+                      className="aspect-square rounded-xl overflow-hidden hover:opacity-90 transition-opacity">
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Lightbox */}
+          {lightboxImg && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+              onClick={() => setLightboxImg(null)}>
+              <img src={lightboxImg} alt="" className="max-h-[90vh] max-w-full rounded-xl shadow-2xl" />
+            </div>
+          )}
+
           {/* Reviews */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Recenze</h2>
@@ -306,10 +345,6 @@ export default function ProfileDetailPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     />
                   </div>
-
-                  {bookingError && (
-                    <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{bookingError}</p>
-                  )}
 
                   <button
                     onClick={handleBook}
