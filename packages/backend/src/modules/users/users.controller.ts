@@ -8,6 +8,7 @@ import {
   UseGuards,
   Query,
   HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -158,6 +159,19 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
     return this.usersService.updateUser(user.userId, updateUserDto);
+  }
+
+  /**
+   * Change current user password
+   */
+  @Patch('me/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Change current user password' })
+  async changePassword(
+    @CurrentUser() user: any,
+    @Body() body: { currentPassword: string; newPassword: string },
+  ): Promise<void> {
+    return this.usersService.changePassword(user.userId, body.currentPassword, body.newPassword);
   }
 
   /**

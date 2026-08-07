@@ -8,7 +8,8 @@ import { api } from '@/lib/api'
 import { getAvatarUrl, formatCZK, formatDate } from '@/lib/utils'
 import {
   User, Calendar, MessageSquare, Star, TrendingUp,
-  Clock, CheckCircle, XCircle, AlertCircle, Plus, Edit, Eye
+  Clock, CheckCircle, XCircle, Plus, Edit, Eye,
+  Image, Phone, Settings, BadgeCheck
 } from 'lucide-react'
 import { useEffect } from 'react'
 
@@ -194,9 +195,13 @@ export default function DashboardPage() {
             <h2 className="font-bold text-gray-900 mb-3">Rychlé akce</h2>
             <div className="space-y-1">
               {[
-                { href: '/bookings', icon: <Calendar className="w-4 h-4" />, label: 'Moje rezervace' },
-                { href: '/chat', icon: <MessageSquare className="w-4 h-4" />, label: 'Zprávy' },
-                { href: '/profiles', icon: <TrendingUp className="w-4 h-4" />, label: 'Hledat služby' },
+                { href: '/bookings',            icon: <Calendar className="w-4 h-4" />,    label: 'Moje rezervace' },
+                { href: '/chat',                icon: <MessageSquare className="w-4 h-4" />, label: 'Zprávy' },
+                { href: '/dashboard/gallery',   icon: <Image className="w-4 h-4" />,       label: 'Galerie médií' },
+                { href: '/dashboard/contacts',  icon: <Phone className="w-4 h-4" />,       label: 'Kontakty' },
+                { href: '/dashboard/verify',    icon: <BadgeCheck className="w-4 h-4" />,  label: 'Ověření totožnosti' },
+                { href: '/settings',            icon: <Settings className="w-4 h-4" />,    label: 'Nastavení účtu' },
+                { href: '/profiles',            icon: <TrendingUp className="w-4 h-4" />,  label: 'Hledat služby' },
               ].map(({ href, icon, label }) => (
                 <Link
                   key={href}
